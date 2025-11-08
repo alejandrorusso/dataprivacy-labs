@@ -1,9 +1,12 @@
-doc: 
-	cabal haddock --haddock-html --haddock-options="-o ./doc"
+doc:
+	cabal haddock --haddock-html --haddock-options="-o doc"
 
-build: 
-	cabal build all 
+build:
+	cabal build all
 
-clean: 
-	rm -r ./dist-newstyle 
-	rm -r ./doc/* 
+test:
+	cabal test
+
+clean:
+	rm -rf dist-newstyle
+	rm -rf doc

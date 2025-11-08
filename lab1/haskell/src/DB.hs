@@ -1,61 +1,84 @@
-{-
-   Exercise: Reconstruction attack
-
-   We will use the file secret.csv (but you cannot inspect it so far)
--}
 {-# LANGUAGE Trustworthy #-}
+
 module DB
-   (
-     DB ()
-   , Name
-   , HIV
-   , Index
-   , names
-   , add
-   , loadDB
-   )
+  ( Row(..)
+  , DB(secretRows) -- `secretRows` is needed by the test-suite. Do _not_ refer to it in your code! We will grep :)
+  , Name
+  , HIV
+  , Index
+  , Noise
+  , dbSize
+  , names
+  , add
+  , loadDB
+  )
 where
 
-import RowDef
-import Data.List.Split (splitOn)
+import Data.List.Split(splitOn)
+import Statistics.Distribution(genContVar)
+import Statistics.Distribution.Uniform(uniformDistr)
+import System.Random.MWC(createSystemRandom)
 
--- Randomness
-import Statistics.Distribution (genContVar)
-import Statistics.Distribution.Uniform (uniformDistr)
-import System.Random.MWC (createSystemRandom)
+-- | Names are modeled as strings.
+type Name = String
 
-{-| Noise magnitud -}
-noiseParam :: Double
-noiseParam = 10
+-- | HIV condition is modeled as a @Double@ for simplicity.
+-- Value @0@ means the patient does not have HIV, and @1@ otherwise.
+type HIV = Double
 
-{-| It provides the names of the dataset in the same order as they appear -}
+-- | A @Row@ is a register with two fields: the @name@ of the patient and their @hiv@ condition.
+data Row = Row
+  { name :: Name
+  , hiv  :: Double
+  }
+  deriving Show
+
+-- | A database is simply a list of rows of type @Row@.
+-- NOTE: The @secretRows@ field is considered secret data that your (hypothetical) attack does not have access to.
+-- Do _not_ refer to it in your code! We will grep :)
+data DB = DB { secretRows :: [Row] }
+
+-- | An @Index@ is a row in the database.
+type Index = Int
+
+-- | We model noise as a @Double@ value.
+type Noise = Double
+
+-- | Convert a list of strings to a Row.
+toRow :: [String] -> Row
+toRow [n, h] = Row { name = n, hiv = read h }
+toRow _ = error "toRow: Incorrect format"
+
+-- | Convert CSV data to a list of Rows.
+toRows :: [[String]] -> [Row]
+toRows csv = map toRow csv
+
+-- | Provides the number of rows in the dataset.
+dbSize :: DB -> Int
+dbSize (DB rs) = length rs
+
+-- | Provides the names of patients in the same order as they appear in the dataset.
 names :: DB -> [Name]
 names (DB rs) = map name rs
 
-{-| Adding elements at the position given by @[Index]@ with noise (of magnitud @noiseParam@) -}
-add :: DB -> [Index] -> IO Double
-add (DB rs) is = do
-  let s = Prelude.sum [hiv (rs!!i) | i <- is]
-  noise <- fromUniform (-noiseParam) noiseParam
-  return (s + noise)
-
-{-| Sample from an uniform distribution within the interval @[li,ls]@ -}
+-- | Sample from an uniform distribution within the interval @[li,ls]@
 fromUniform :: Double -> Double -> IO Double
 fromUniform li ls = do
   let uni = uniformDistr li ls
   gen <- createSystemRandom
   genContVar uni gen
 
-{-| It loads the dataset from the file -}
-loadDB :: IO DB
-loadDB = do
-  ds <- importCSV "secret.csv"
-  return $ DB $ toRows ds
+-- | Adding elements at the position given by the @[Index]@ list with a given noise.
+add :: DB -> Noise -> [Index] -> IO Double
+add (DB rs) noise is = do
+  let s = sum [hiv (rs !! i) | i <- is]
+  noise <- fromUniform (-noise) noise
+  return (s + noise)
 
-{-| Auxiliary function for handling CVS files -}
-importCSV :: String -> IO [[String]]
-importCSV path = do content <- readFile path
-                    -- Removes header and last element since it's an empy list
-                    let rows    = init $ tail $ splitOn "\n" content
-                        columns = map (splitOn ",") rows
-                    return columns
+-- | Auxiliary function for parsing CSV files.
+parseCSV :: String -> [[String]]
+parseCSV = map (splitOn ",") . drop 1 . lines
+
+-- | Load a dataset from a file.
+loadDB :: FilePath -> IO DB
+loadDB path = fmap (DB . toRows . parseCSV) $ readFile path
