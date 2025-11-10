@@ -15,7 +15,7 @@ hammingDistance as bs = fromIntegral $ length $ filter (uncurry (/=)) $ zip as b
 
 mkTestCase :: String -> Noise -> TestTree
 mkTestCase dbName noise =
-  testCase (dbName <> "-noise-" <> show noise) $ do
+  testCase (dbName <> "-" <> show noise) $ do
     db <- loadDB ("datasets/" <> dbName <> ".csv")
     candidates <- attack db noise
 
