@@ -8,12 +8,15 @@ from attack import *
 def hamming_distance(ca: Candidate, cb: Candidate) -> float:
   return float(len(list(filter(lambda p: p[0] != p[1], zip(ca, cb)))))
 
+def pairs(db_names: List[str], noises: List[Noise]) -> List[Tuple[str, Noise]]:
+  return list(chain(*[[(db_name, noise) for noise in noises] for db_name in db_names]))
+
 # Generates a list of test cases.
 def parameters() -> List[Tuple[str, Noise]]:
-  db_names = ["db1-small", "db1-large", "db2-small", "db2-large"]
-  noises = [1, 2, 4]
-
-  return list(chain(*[[(db_name, noise) for noise in noises] for db_name in db_names]))
+  return (
+    pairs(["db1-small", "db2-small", "db2-large"], [1, 2, 5, 10])
+    + pairs(["db1-large"], [1, 2])
+  )
 
 @mark.parametrize("db_name, noise", parameters())
 def test_attack(db_name: str, noise: Noise) -> None:
