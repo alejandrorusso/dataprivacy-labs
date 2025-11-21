@@ -276,18 +276,19 @@ def test_laplace_accuracy():
     print("Testing Laplace mechanism (α,β)-accuracy...")
 
     # Test dpCount with (α,β)-accuracy
-    count_test = test_count_accuracy()
+    count_test = _test_count_accuracy()
 
     # Test dpSum with (α,β)-accuracy
-    sum_test = test_sum_accuracy()
+    sum_test = _test_sum_accuracy()
 
     all_passed = count_test and sum_test
     print(f"  Laplace accuracy tests: {'PASSED' if all_passed else 'FAILED'}")
 
-    return all_passed
+    assert all_passed
 
+# These functions are named with an underscore so that `pytest` won't consider them standalone test cases
 
-def test_count_accuracy():
+def _test_count_accuracy():
     """Test dpCount accuracy using (α,β) bounds with multiple epsilon values"""
     print("  Testing dpCount (α,β)-accuracy with multiple epsilons:")
 
@@ -303,7 +304,7 @@ def test_count_accuracy():
     # Test each epsilon value
     results = []
     for epsilon in epsilons:
-        result = test_count_for_epsilon(beta, sensitivity, true_count, num_samples, epsilon)
+        result = _test_count_for_epsilon(beta, sensitivity, true_count, num_samples, epsilon)
         results.append(result)
 
     all_passed = all(results)
@@ -312,7 +313,7 @@ def test_count_accuracy():
     return all_passed
 
 
-def test_count_for_epsilon(beta, sensitivity, true_count, num_samples, epsilon):
+def _test_count_for_epsilon(beta, sensitivity, true_count, num_samples, epsilon):
     """Test dpCount for a specific epsilon value"""
     alpha = math.log(1.0 / beta) * (sensitivity / epsilon)  # Theoretical error bound
     print(f"    ε = {epsilon}:")
@@ -341,7 +342,7 @@ def test_count_for_epsilon(beta, sensitivity, true_count, num_samples, epsilon):
     return test_passed
 
 
-def test_sum_accuracy():
+def _test_sum_accuracy():
     """Test dpSum accuracy using (α,β) bounds with multiple epsilon values"""
     print("  Testing dpSum (α,β)-accuracy with multiple epsilons and sensitivities:")
 
@@ -356,7 +357,7 @@ def test_sum_accuracy():
     # Test each bounds configuration
     results = []
     for bounds in bounds_list:
-        result = test_sum_for_bounds(beta, num_samples, epsilons, bounds)
+        result = _test_sum_for_bounds(beta, num_samples, epsilons, bounds)
         results.append(result)
 
     all_passed = all(results)
@@ -365,7 +366,7 @@ def test_sum_accuracy():
     return all_passed
 
 
-def test_sum_for_bounds(beta, num_samples, epsilons, bounds):
+def _test_sum_for_bounds(beta, num_samples, epsilons, bounds):
     """Test dpSum for a specific bounds configuration across multiple epsilons"""
     lower_bound, upper_bound = bounds
     sensitivity = max(abs(lower_bound), abs(upper_bound))
@@ -374,7 +375,7 @@ def test_sum_for_bounds(beta, num_samples, epsilons, bounds):
     # Test each epsilon value for this bounds configuration
     results = []
     for epsilon in epsilons:
-        result = test_sum_for_epsilon(beta, sensitivity, num_samples, lower_bound, upper_bound, epsilon)
+        result = _test_sum_for_epsilon(beta, sensitivity, num_samples, lower_bound, upper_bound, epsilon)
         results.append(result)
 
     all_passed = all(results)
@@ -382,7 +383,7 @@ def test_sum_for_bounds(beta, num_samples, epsilons, bounds):
     return all_passed
 
 
-def test_sum_for_epsilon(beta, sensitivity, num_samples, lower_bound, upper_bound, epsilon):
+def _test_sum_for_epsilon(beta, sensitivity, num_samples, lower_bound, upper_bound, epsilon):
     """Test dpSum for a specific epsilon value"""
     alpha = math.log(1.0 / beta) * (sensitivity / epsilon)  # Theoretical error bound
     print(f"      ε = {epsilon}:")
@@ -416,20 +417,20 @@ def test_stability_tracking_accuracy():
     print("Testing stability tracking with (α,β)-accuracy...")
 
     # Test 1: Union amplifies stability
-    stability_test1 = test_union_stability_accuracy()
+    stability_test1 = _test_union_stability_accuracy()
 
     # Test 2: GroupBy doubles stability
-    stability_test2 = test_groupby_stability_accuracy()
+    stability_test2 = _test_groupby_stability_accuracy()
 
     all_passed = stability_test1 and stability_test2
     print(f"  Union stability amplification: {stability_test1}")
     print(f"  GroupBy stability doubling: {stability_test2}")
     print(f"  Stability tracking tests: {'PASSED' if all_passed else 'FAILED'}")
 
-    return all_passed
+    assert all_passed
 
 
-def test_union_stability_accuracy():
+def _test_union_stability_accuracy():
     """Test union amplifies stability correctly using (α,β)-accuracy"""
     print("    Testing union stability amplification with (α,β)-accuracy...")
 
@@ -484,7 +485,7 @@ def test_union_stability_accuracy():
     return test_passed
 
 
-def test_groupby_stability_accuracy():
+def _test_groupby_stability_accuracy():
     """Test groupBy doubles stability using (α,β)-accuracy"""
     print("    Testing groupBy stability doubling with (α,β)-accuracy...")
 
@@ -537,89 +538,3 @@ def test_groupby_stability_accuracy():
     print(f"      GroupBy accuracy test: {'PASSED' if grouped_test else 'FAILED'}")
 
     return test_passed
-
-
-def run_all_dsl_tests():
-    """Run all DP_DSL tests"""
-    print("Running DP_DSL Class Tests")
-    print("=" * 40)
-
-    test_dsl_basic_functionality()
-    print()
-
-    test_dsl_budget_management()
-    print()
-
-    test_dsl_transformations()
-    print()
-
-    test_dsl_stability_noise_scaling()
-    print()
-
-    test_dsl_epsilon_comparison()
-    print()
-
-    test_dsl_error_handling()
-    print()
-
-    test_dsl_budget_utilities()
-    print()
-
-    # Add (α,β)-accuracy tests
-    test_laplace_accuracy()
-    print()
-
-    test_stability_tracking_accuracy()
-    print()
-
-    print("=" * 40)
-    print("All DP_DSL tests passed!")
-
-
-def run_accuracy_tests_only():
-    """Run only the (α,β)-accuracy tests based on Haskell implementation"""
-    print("Running (α,β)-Accuracy Tests")
-    print("=" * 50)
-
-    test1 = test_laplace_accuracy()
-    print()
-
-    test2 = test_stability_tracking_accuracy()
-    print()
-
-    all_passed = test1 and test2
-    print("=" * 50)
-    print(f"Overall (α,β)-accuracy result: {'ALL TESTS PASSED' if all_passed else 'SOME TESTS FAILED'}")
-
-    return all_passed
-
-
-def main():
-    """Main function for running DSL tests"""
-    try:
-        run_all_dsl_tests()
-        print("\n" + "=" * 60)
-        print("Running additional (α,β)-accuracy tests...")
-        print("=" * 60)
-        run_accuracy_tests_only()
-        print("✓ DP_DSL test suite completed successfully")
-    except Exception as e:
-        print(f"✗ DP_DSL test suite failed: {e}")
-        raise
-
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "--accuracy-only":
-        # Run only accuracy tests for focused testing
-        try:
-            success = run_accuracy_tests_only()
-            if success:
-                print("✓ (α,β)-accuracy test suite completed successfully")
-            else:
-                print("✗ (α,β)-accuracy test suite failed")
-        except Exception as e:
-            print(f"✗ (α,β)-accuracy test suite failed: {e}")
-            raise
-    else:
-        main()
