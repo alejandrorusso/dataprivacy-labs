@@ -1,57 +1,27 @@
 """
 Core data structures and types for the Differential Privacy DSL
 
-This module provides the foundational classes and types needed for
-differential privacy operations, including the abstract Dataset interface,
-result types, and custom exceptions.
+This module defines the fundamental data types used throughout the DSL:
+- Dataset with stability tracking (abstract datatype)
+- DPResult for measurement outputs
+- Exception types
+- Privacy budget management
 
 STUDENT TODO: Complete the implementation of the Dataset abstract base class
 and the concrete dataset implementation.
 """
 
-from typing import TypeVar, Generic, List, Iterator, Union
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar, List, Iterator, Any
+from dataclasses import dataclass
 
-# Type variables for generic programming
 T = TypeVar('T')
-Epsilon = float  # Type alias for privacy parameter
-
-
-class InsufficientBudget(Exception):
-    """Raised when a DP operation would exceed the available privacy budget"""
-
-    def __init__(self, requested: float, available: float):
-        self.requested = requested
-        self.available = available
-        super().__init__(f"Insufficient budget: requested {requested}, available {available}")
-
-
-class InvalidParameter(Exception):
-    """Raised when invalid parameters are passed to DP operations"""
-
-    def __init__(self, message: str):
-        super().__init__(message)
-
-
-class DPResult:
-    """Result of a differentially private computation
-
-    Contains the noisy result value and the epsilon spent for this computation.
-    """
-
-    def __init__(self, dp_value: float, epsilon_spent: float):
-        self.dp_value = dp_value
-        self.epsilon_spent = epsilon_spent
-
-    def __str__(self) -> str:
-        return f"DPResult(value={self.dp_value:.3f}, ε={self.epsilon_spent})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
+Epsilon = float
+Budget = float
 
 
 class Dataset(Generic[T], ABC):
-    """Abstract base class for datasets with stability tracking
+    """Abstract base class for Datasets with stability tracking
 
     This class provides an abstract interface for datasets that encapsulates
     the data and tracks stability (how much one individual can affect results).
@@ -72,9 +42,8 @@ class Dataset(Generic[T], ABC):
         """Initialize dataset with data and stability
 
         Args:
-            data: List of data elements
-            stability: Stability parameter (must be >= 1)
-
+            data: The underlying data elements
+            stability: Stability parameter for noise calibration
         Raises:
             ValueError: If stability < 1
         """
@@ -86,29 +55,8 @@ class Dataset(Generic[T], ABC):
 
     @property
     def stability(self) -> int:
-        """Get the stability of this dataset"""
+        """Get the stability parameter (read-only)"""
         # TODO: Return the stability value
-        pass
-
-    @abstractmethod
-    def _get_data(self) -> List[T]:
-        """Get the internal data (for use by DP operations only)
-
-        This method should only be used by DP_DSL methods, not by external code.
-        """
-        pass
-
-    @abstractmethod
-    def _create_new(self, new_data: List[T], new_stability: int) -> 'Dataset[T]':
-        """Create a new dataset of the same type with different data/stability
-
-        Args:
-            new_data: New data for the dataset
-            new_stability: New stability value
-
-        Returns:
-            New dataset instance of the same concrete type
-        """
         pass
 
     def __len__(self) -> int:
@@ -117,38 +65,87 @@ class Dataset(Generic[T], ABC):
         pass
 
     def __iter__(self) -> Iterator[T]:
-        """Iterate over the dataset elements"""
+        """Iterate over the dataset elements (read-only)"""
         # TODO: Return an iterator over the internal data
+        pass
+
+    # Abstract methods for controlled access (to be used by DP_DSL class only)
+    @abstractmethod
+    def _get_data(self) -> List[T]:
+        """Get the underlying data (for use by internal DP_DSL operations only)
+        """
+        pass
+
+    @abstractmethod
+    def _create_new(self, new_data: List[Any], new_stability: int) -> 'Dataset':
+        """Create new dataset with given data and stability"""
         pass
 
 
 class ConcreteDataset(Dataset[T]):
-    """Concrete implementation of the Dataset abstract base class
+    """Concrete implementation of Dataset
+
+    This is the actual implementation that should be used internally by the DP_DSL.
+    Users should create datasets using the factory function `create_dataset()`.
 
     STUDENT TODO: Complete this implementation.
     This is a simple concrete implementation that stores data in a list.
     """
 
     def _get_data(self) -> List[T]:
-        """Get the internal data"""
-        # TODO: Return the internal data
+        """Get underlying data - for internal DP_DSL operations only"""
+        # TODO: Return the underlying data
         pass
 
-    def _create_new(self, new_data: List[T], new_stability: int) -> 'Dataset[T]':
-        """Create a new ConcreteDataset with the given data and stability"""
+    def _create_new(self, new_data: List[Any], new_stability: int) -> 'ConcreteDataset':
+        """Create new concrete dataset with given data and stability"""
         # TODO: Return a new ConcreteDataset instance
         pass
 
 
 def create_dataset(data: List[T], stability: int = 1) -> Dataset[T]:
-    """Factory function to create a new dataset
+    """Factory function to create a new Dataset
 
     Args:
-        data: List of data elements
-        stability: Stability parameter (default 1)
+        data: The data elements
+        stability: Stability parameter (default: 1)
 
     Returns:
-        New Dataset instance
+        A new Dataset instance
+
+    Example:
+        >>> data = create_dataset([1, 2, 3, 4, 5])
+        >>> print(f"Dataset size: {len(data)}")
+        >>> print(f"Stability: {data.stability}")
     """
     # TODO: Create and return a ConcreteDataset instance
     pass
+
+
+@dataclass
+class DPResult:
+    """Result of a differentially private computation
+
+    Encapsulates both the noisy result and the privacy cost (epsilon spent).
+    """
+    dp_value: float
+    epsilon_spent: float
+
+
+class PrivacyError(Exception):
+    """Exception types for privacy operations"""
+    pass
+
+
+class InsufficientBudget(PrivacyError):
+    """Raised when requested privacy budget exceeds available budget"""
+    def __init__(self, requested: Budget, available: Budget):
+        self.requested = requested
+        self.available = available
+        super().__init__(f"Insufficient budget: need {requested}, have {available}")
+
+
+class InvalidParameter(PrivacyError):
+    """Raised when invalid parameters are provided"""
+    def __init__(self, message: str):
+        super().__init__(f"Invalid parameter: {message}")
